@@ -71,16 +71,14 @@ exports.login = async(req, res) => {
         }
         
         //step4 create token
-        jwt.sign(payload,process.env.JWT_SECRET,{ expiresIn: '1d' },(err,token)=>{
+        jwt.sign(payload,process.env.SECRET,{ expiresIn: '1d' },(err,token)=>{
             if(err) {
                 return res.status(500).json({ message: "Server Error" })
 
             }
-            res.json({ token })
+            res.json({ payload,token })
         }) 
-        console.log(payload)
-
-        res.send('hello login controller')
+        
 
     }catch(err){
         console.log(err)
