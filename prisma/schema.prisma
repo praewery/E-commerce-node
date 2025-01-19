@@ -28,11 +28,54 @@ model User {
 
 model Product {
   id          Int      @id @default(autoincrement())
+  orderItems ProductOnOrder[]
   name        String
   discription String
   price       Float
   sold        Int      @default(0)
   quantity    Int
+  createdAt   DateTime @default(now())
+  UpdateAt    DateTime @updatedAt
+}
+
+model Order {
+  id          Int      @id @default(autoincrement())
+  products     ProductOnOrder[]
+  cartTotal   Float
+  orderstatus String   @default("Notprocess")
+  createdAt   DateTime @default(now())
+  UpdateAt    DateTime @updatedAt
+}
+
+//1 สินค้ามีได้หลาย order
+model ProductOnOrder{
+  id          Int      @id @default(autoincrement())
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId   Int
+  order       Order    @relation(fields: [orderId], references: [id],  onDelete: Cascade)
+  orderId     Int
+}
+
+model category {
+  id          Int      @id @default(autoincrement())
+  name        String
+  discription String
+  createdAt   DateTime @default(now())
+  UpdateAt    DateTime @updatedAt
+}
+
+model cart{
+  id          Int      @id @default(autoincrement())
+  cartTotal   Float
+  createdAt   DateTime @default(now())
+  UpdateAt    DateTime @updatedAt
+}
+model Image{
+  id          Int      @id @default(autoincrement())
+  asset_id    String // มาจาก cloudinary
+  public_id   String // มาจาก cloudinary
+  url         String
+  secure_url  String
   createdAt   DateTime @default(now())
   UpdateAt    DateTime @updatedAt
 }
