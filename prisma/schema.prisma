@@ -22,38 +22,44 @@ model User {
   role      String   @default("user")
   enabled   Boolean  @default(true)
   address   String?
+  orders    Order[]
+  carts     cart[]
   createdAt DateTime @default(now()) //บันทึกเวลาที่ลงdb
   UpdateAt  DateTime @updatedAt // บันทึกเวลาที่ีupdate(ใชเตอน sort)
 }
 
 model Product {
-  id          Int      @id @default(autoincrement())
-  orderItems ProductOnOrder[]
+  id          Int              @id @default(autoincrement())
+  orderItems  ProductOnOrder[]
+  cartItems   ProductOnCart[]
   name        String
+  image       Image[]
   discription String
   price       Float
-  sold        Int      @default(0)
+  sold        Int              @default(0)
   quantity    Int
-  createdAt   DateTime @default(now())
-  UpdateAt    DateTime @updatedAt
+  createdAt   DateTime         @default(now())
+  UpdateAt    DateTime         @updatedAt
 }
 
 model Order {
-  id          Int      @id @default(autoincrement())
-  products     ProductOnOrder[]
+  id          Int              @id @default(autoincrement())
+  products    ProductOnOrder[]
   cartTotal   Float
-  orderstatus String   @default("Notprocess")
-  createdAt   DateTime @default(now())
-  UpdateAt    DateTime @updatedAt
+  orderstatus String           @default("Notprocess")
+  createdAt   DateTime         @default(now())
+  UpdateAt    DateTime         @updatedAt
+  Orderedby   User             @relation(fields: [OrderedbyId], references: [id], onDelete: Cascade)
+  OrderedbyId Int
 }
 
 //1 สินค้ามีได้หลาย order
-model ProductOnOrder{
-  id          Int      @id @default(autoincrement())
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  productId   Int
-  order       Order    @relation(fields: [orderId], references: [id],  onDelete: Cascade)
-  orderId     Int
+model ProductOnOrder {
+  id        Int     @id @default(autoincrement())
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade) //เก็บ id order
+  productId Int
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade) //เก็บ id product
+  orderId   Int
 }
 
 model category {
@@ -64,18 +70,34 @@ model category {
   UpdateAt    DateTime @updatedAt
 }
 
-model cart{
-  id          Int      @id @default(autoincrement())
+model cart {
+  id          Int             @id @default(autoincrement())
+  product     ProductOnCart[]
   cartTotal   Float
-  createdAt   DateTime @default(now())
-  UpdateAt    DateTime @updatedAt
+  createdAt   DateTime        @default(now())
+  UpdateAt    DateTime        @updatedAt
+  orderedBy   User            @relation(fields: [orderedById], references: [id], onDelete: Cascade)
+  orderedById Int
 }
-model Image{
-  id          Int      @id @default(autoincrement())
-  asset_id    String // มาจาก cloudinary
-  public_id   String // มาจาก cloudinary
-  url         String
-  secure_url  String
-  createdAt   DateTime @default(now())
-  UpdateAt    DateTime @updatedAt
+
+model ProductOnCart {
+  id        Int     @id @default(autoincrement())
+  cart      cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  cartId    Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId Int
+  count     Int
+  price     Float
+}
+
+model Image {
+  id         Int      @id @default(autoincrement())
+  asset_id   String // มาจาก cloudinary
+  public_id  String // มาจาก cloudinary
+  url        String
+  secure_url String
+  Product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId  Int
+  createdAt  DateTime @default(now())
+  UpdateAt   DateTime @updatedAt
 }
