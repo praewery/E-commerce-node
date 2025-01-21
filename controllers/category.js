@@ -3,11 +3,11 @@ const prisma = require('../config/prisma')
 
 exports.create = async(req, res) => {
     try{
-        const { name,discription  } = req.body
+        const { name,description  } = req.body
         const category = await prisma.category.create({
             data: {
                 name: name,
-                discription: discription
+                description: description
             }
 
         })
