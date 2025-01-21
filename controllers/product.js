@@ -127,7 +127,7 @@ exports.listby = async (req, res) => {
       orderBy: {
         [sort]: order,
       },
-      include: {category: true,},
+      include: { category: true },
     });
     res.send(products);
   } catch (err) {
@@ -136,9 +136,91 @@ exports.listby = async (req, res) => {
   }
 };
 
+const handleQuery = async (req, res, query) => {
+  try {
+    const products = await prisma.product.findMany({
+      where: {
+        title: {
+          contains: query,
+        },
+      },
+
+      include: {
+        category: true,
+        images: true,
+      },
+
+    });
+    res.send(products);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+//price is array
+const handlePrice = async (req, res, price) => {
+  try {
+    const products = await prisma.product.findMany({
+      where: {
+        price: {
+          gte: price[0], //gte=greater than or equal
+          lte: price[1], //lte=less than or equal
+        },
+      },
+        include: {
+            category: true,
+            images: true,
+        }
+    });
+
+    res.send(products);
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+const handleCategory = async (req, res, categoryId) => {
+  try {
+    const products = await prisma.product.findMany({
+      where: {
+        categoryId: {
+            in: categoryId.map((id) => parseInt(id)),//categoryหลายๆอันที่เลือก
+        }
+      },
+        include: {
+            category: true,
+            images: true,
+        }
+    });
+
+    res.send(products);
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
 exports.searchfilter = async (req, res) => {
   try {
-    res.send("search filter product");
+    const { query, price, category } = req.body;
+    if (query) {
+      console.log("query>>", query);
+      await handleQuery(req, res, query);
+    }
+
+    if (price) {
+      console.log("price>>", price);
+      await handlePrice(req, res, price);
+    }
+
+    if (category) {
+      console.log("category>>", category);
+      await handleCategory(req, res, category);
+    }
+
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: "Server Error" });
