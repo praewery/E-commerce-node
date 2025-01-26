@@ -46,47 +46,47 @@ exports.register = async(req, res) => {
     }
 }
 
-exports.login = async(req, res) => {
-    try{
-        const { email, password } = req.body
-        //step1 check email
+exports.login = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        // Step 1: Check email
         const user = await prisma.user.findFirst({
-            where: {
-                email: email
-            }
-        })
-        if(!user){
-            return res.status(400).json({ message: "Email not found" })
+            where: { email: email }
+        });
+        if (!user) {
+            return res.status(400).json({ message: "Email not found" });
         }
-        //step2 check password  userเอาจากตัวที่เช็คด้านบน
-        const isMatch = await bcrypt.compare(password, user.password)
-        if(!isMatch){ 
-            return res.status(400).json({ message: "Password not match" })
-          }
-        //step3 create payload เอาไว้เข้ารหัสtoken
+
+        // Step 2: Check password
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ message: "Password not match" });
+        }
+
+        // Step 3: Create payload
         const payload = {
-            id : user.id,
+            id: user.id,
             email: user.email,
             role: user.role
-        }
-        
-        //step4 create token
-        jwt.sign(payload,process.env.SECRET,{ expiresIn: '1d' },(err,token)=>{
-            if(err) {
-                return res.status(500).json({ message: "Server Error" })
+        };
 
-            }
-            res.json({ payload,token })
-        }) 
-        
+        // Step 4: Create tokens
+        const accessToken = jwt.sign(payload, process.env.SECRET, { expiresIn: '15m' });
+        const refreshToken = jwt.sign(payload, process.env.REFRESH_SECRET, { expiresIn: '7d' });
 
-    }catch(err){
-        console.log(err)
-        res.status(500).json({ message: "Server Error"})
+        // Save refreshToken to database (optional)
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { refreshToken: refreshToken }
+        });
+
+        res.json({ accessToken, refreshToken });
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ message: "Server Error" });
     }
-
-}
-
+};
 exports.currentUser = async(req, res) => {
     try{
         res.send('hello  currentUser controller')

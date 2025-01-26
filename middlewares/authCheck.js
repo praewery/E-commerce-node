@@ -24,24 +24,25 @@ exports.authCheck = async(req, res, next) => {
             return res.status(401).json({ message: "This account not found" })
         }
 
-        console.log(decode)
         next()//ให้ไปทำงานต่อ
     }
     catch(err){
         console.log(err)
-        res.status(500).json({ message: "Server Error"})
+        res.status(500).json({ message: "Token Invalid"})
     }
 }
 
 exports.adminCheck = async(req, res, next) => {
     try{
         const { email } = req.user
-        console.log('admin check',email)
         const adminUser = await prisma.user.findFirst({
             where: {
                 email: email
             }
         })
+        if(!adminUser || adminUser.role !== 'admin'){
+            return res.status(403).json({ message: "access denied : admin only" })
+        }
         console.log('admin check',adminUser)
         next()
 

@@ -1,20 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const { authCheck, adminCheck } = require('../middlewares/authCheck')
-const {listUsers} = require('../controllers/user')
-
+const {listUsers,changeStatus, changeRole, userCart,getUserCart,emptyCart,saveAddress,getOrder,saveOrder} = require('../controllers/user')
+//admin
 router.get('/users',authCheck,adminCheck,listUsers)
-router.post('/change-status')
-router.post('/change-role')
+router.post('/change-status',authCheck,adminCheck,changeStatus)
+router.post('/change-role',authCheck,adminCheck,changeRole)
 
-router.post('/user/cart')
-router.get('/user/cart')
-router.delete('/user/cart')
+//user
+router.post('/user/cart',authCheck,userCart)
+router.get('/user/getcart',authCheck,getUserCart)
+router.delete('/user/emptycart',authCheck,emptyCart )
 
-router.post('/user/address')
+router.post('/user/address', saveAddress)
 
-router.post('/user/order')
-router.get('/user/order')
+router.post('/user/order', saveOrder)
+router.get('/user/order', getOrder)
 
 
 module.exports = router;
