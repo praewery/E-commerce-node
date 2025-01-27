@@ -83,7 +83,7 @@ exports.login = async (req, res) => {
         }
 
         const accessToken = jwt.sign(payload, process.env.SECRET, { expiresIn: '15m' });
-        const refreshToken = jwt.sign(payload, process.env.REFRESH_SECRET, { expiresIn: '7d' });
+        //const refreshToken = jwt.sign(payload, process.env.REFRESH_SECRET, { expiresIn: '7d' });
 
         // Save refreshToken to database
         await prisma.user.update({
