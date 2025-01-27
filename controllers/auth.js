@@ -1,50 +1,50 @@
-const prisma = require('../config/prisma')
-const bcrypt = require('bcryptjs')
-const jwt = require('jsonwebtoken')
+const prisma = require('../config/prisma');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
-exports.register = async(req, res) => {
-    //code
-    try{
-        const { email, password } = req.body
-        //step validation
-        if(!email) {
-            return res.status(400).json({ message: "Please fill email" })
+exports.register = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        // Step 1: Validate input
+        if (!email) {
+            return res.status(400).json({ message: "Please fill email" });
         }
-        if(!password){
-            return res.status(400).json({ message: "Please fill password" })
+        if (!password) {
+            return res.status(400).json({ message: "Please fill password" });
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ message: "Invalid email format" });
         }
 
-        //step2 db already?
+        // Step 2: Check if user already exists
         const user = await prisma.user.findFirst({
-            where: {
-                email: email
-            }
-        })
-        if(user){
-            return res.status(400).json({ message: "Email aready Exits" })
+            where: { email: email }
+        });
+        if (user) {
+            return res.status(400).json({ message: "Email already exists" });
         }
 
-        //step3 hash password
-        const hashPassword = await bcrypt.hash(password,10) //เกลือคือเลขที่ปนตอนใส่รหัสเลขแต่รหัสเลขจะไม่เหมือนกัน
-        
+        // Step 3: Hash password
+        const hashPassword = await bcrypt.hash(password, 10);
 
-        //step4 register
+        // Step 4: Create user
         await prisma.user.create({
             data: {
                 email: email,
-                password: hashPassword
+                password: hashPassword,
+                role: 'user', // Default role
+                enabled: true // Default enabled status
             }
-        })
+        });
 
-        
-
-        res.send('register success')
-
-    }catch(err){
-        console.log(err)
-        res.status(500).json({ message: "Server Error"})
+        res.status(201).json({ message: 'Register success' });
+    } catch (err) {
+        console.error("Error in register:", err);
+        res.status(500).json({ message: "Server Error" });
     }
-}
+};
 
 exports.login = async (req, res) => {
     try {
@@ -56,6 +56,11 @@ exports.login = async (req, res) => {
         });
         if (!user) {
             return res.status(400).json({ message: "Email not found" });
+        }
+
+        // Check if the account is enabled
+        if (!user.enabled) {
+            return res.status(403).json({ message: "This account is disabled" });
         }
 
         // Step 2: Check password
@@ -72,27 +77,43 @@ exports.login = async (req, res) => {
         };
 
         // Step 4: Create tokens
+        if (!process.env.SECRET || !process.env.REFRESH_SECRET) {
+            console.error("Environment variables SECRET or REFRESH_SECRET are not set");
+            return res.status(500).json({ message: "Internal Server Error" });
+        }
+
         const accessToken = jwt.sign(payload, process.env.SECRET, { expiresIn: '15m' });
         const refreshToken = jwt.sign(payload, process.env.REFRESH_SECRET, { expiresIn: '7d' });
 
-        // Save refreshToken to database (optional)
+        // Save refreshToken to database
         await prisma.user.update({
             where: { id: user.id },
             data: { refreshToken: refreshToken }
         });
 
-        res.json({ accessToken, refreshToken });
+        res.status(200).json({ accessToken, refreshToken });
     } catch (err) {
-        console.log(err);
+        console.error("Error in login:", err);
         res.status(500).json({ message: "Server Error" });
     }
 };
-exports.currentUser = async(req, res) => {
-    try{
-        res.send('hello  currentUser controller')
 
-    }catch(err){
-        console.log(err)
-        res.status(500).json({ message: "Server Error"})
+exports.currentUser = async (req, res) => {
+    try {
+        const { email } = req.user;
+
+        const user = await prisma.user.findFirst({
+            where: { email: email },
+            select: { id: true, email: true, role: true }
+        });
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        res.status(200).json({ user });
+    } catch (err) {
+        console.error("Error in currentUser:", err);
+        res.status(500).json({ message: "Server Error" });
     }
-}
+};

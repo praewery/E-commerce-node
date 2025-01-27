@@ -1,3 +1,8 @@
+require("dotenv").config();
+
+
+console.log('SECRET:', process.env.SECRET);  // ค่าของ SECRET ควรเป็น "minayeon"
+console.log('DATABASE_URL:', process.env.DATABASE_URL);  // ค่าของ DATABASE_URL ควรเป็น "mysql://root:123456789@localhost:3306/ecom"
 // step1 import
 const express = require('express');
 const morgan = require('morgan');
@@ -32,4 +37,3 @@ readdirSync('./routes')
 // step2 Start server
 app.listen(5001, () => 
     console.log('Server is running on port 5001'))
-
