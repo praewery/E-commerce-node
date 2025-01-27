@@ -1,31 +1,47 @@
-const jwt = require("jsonwebtoken");
-const prisma = require("../config/prisma");
+const jwt = require('jsonwebtoken');
+const prisma = require('../config/prisma');
 
 exports.authCheck = async (req, res, next) => {
-  try {
-    const headerToken = req.headers.authorization;
-    if (!headerToken) {
-      return res.status(401).json({ message: "Unauthorized" });
+    try {
+        const headerToken = req.headers.authorization;
+        console.log("Authorization header:", headerToken);
+
+        if (!headerToken) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+
+        const token = req.headers.authorization?.split(' ')[1]; // ไม่เอา Bearer
+        
+        console.log("Token extracted:", token);
+
+        const decode = jwt.verify(token, process.env.SECRET);
+        console.log("Decoded token:", decode);
+
+        // ตรวจสอบว่า token หมดอายุหรือไม่
+        const currentTime = Math.floor(Date.now() / 1000); // Get current time in UNIX timestamp (seconds)
+        if (currentTime > decode.exp) {
+            return res.status(401).json({ message: "Token has expired" });
+        }
+
+        req.user = decode; // ใส่ข้อมูลที่ decode ลงใน req.user
+
+        const user = await prisma.user.findFirst({
+            where: {
+                email: req.user.email,
+            },
+        });
+
+        if (!user || !user.enabled) {
+            return res.status(401).json({ message: "This account not found or disabled" });
+        }
+
+        next(); // ให้ middleware อื่นทำงานต่อ
+    } catch (err) {
+        console.error("Error in authCheck:", err.message);
+        res.status(500).json({ message: "Token Invalid" });
     }
-
-    const token = headerToken.split(" ")[1]; // Extract token after 'Bearer'
-    const decoded = jwt.verify(token, process.env.SECRET);  // Ensure SECRET matches
-    req.user = decoded;  // Add decoded info to request
-
-    const user = await prisma.user.findFirst({
-      where: { email: req.user.email },
-    });
-
-    if (!user || !user.enabled) {
-      return res.status(401).json({ message: "This account not found or disabled" });
-    }
-
-    next(); // Allow the next middleware or route handler
-  } catch (err) {
-    console.error("Error in authCheck:", err.message);
-    res.status(401).json({ message: "Invalid Token or Signature" });
-  }
 };
+
 
 
 exports.adminCheck = async (req, res, next) => {

@@ -1,26 +1,46 @@
 const e = require("express")
+const jwt = require('jsonwebtoken');
 const prisma = require('../config/prisma')
 
-exports.listUsers = async(req, res) => {
-    try{
-        const users = await prisma.user.findMany({
-            select: {
-                id: true,
-                email: true,
-                role:true,
-                enabled:true,
-                address:true
+exports.listUsers = async (req, res) => {
+    try {
+        // ตรวจสอบว่า Authorization header มีหรือไม่
+        const headerToken = req.headers.authorization;
+        if (!headerToken) {
+            return res.status(401).json({ message: "Unauthorized. No token provided." });
+        }
 
+        // แยก token จาก 'Bearer <token>'
+        const token = headerToken.split(' ')[1];
+        if (!token) {
+            return res.status(401).json({ message: "Unauthorized. Token missing." });
+        }
+
+        // ตรวจสอบและ decode token
+        jwt.verify(token, process.env.SECRET, async (err, decoded) => {
+            if (err) {
+                return res.status(401).json({ message: "Unauthorized. Token is invalid or expired." });
             }
-        })
-        res.json("List Users")
 
+            // ถ้า token valid, ดึงข้อมูลผู้ใช้จากฐานข้อมูล
+            const users = await prisma.user.findMany({
+                select: {
+                    id: true,
+                    email: true,
+                    role: true,
+                    enabled: true,
+                    address: true,
+                },
+            });
+
+            // ส่งข้อมูลผู้ใช้กลับ
+            res.json(users);
+        });
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ message: "Server Error" });
     }
-    catch(err){
-        console.log(err)
-        res.status(500).json({ message: "Server Error"})
-    }
-}
+};
 exports.changeStatus = async(req, res) => {
     try{
         const { id, enabled} =req.body
@@ -60,10 +80,10 @@ exports.changeRole = async(req, res) => {
 
 exports.userCart = async (req, res) => {
     try {
-        const { cart } = req.body; // Cart items from request body
-        const userId = req.user.id; // Logged-in user's ID
+        const { cart } = req.body; // รับข้อมูลสินค้าในตะกร้า
+        const userId = req.user.id; // ดึง ID ของผู้ใช้จาก req.user ที่มากับ token
 
-        // Find user
+        // ตรวจสอบว่าผู้ใช้มีอยู่ในฐานข้อมูลหรือไม่
         const user = await prisma.user.findFirst({
             where: { id: Number(userId) },
         });
@@ -72,7 +92,7 @@ exports.userCart = async (req, res) => {
             return res.status(404).json({ message: "User not found" });
         }
 
-        // Delete old cart items and cart
+        // ลบข้อมูลสินค้าก่อนหน้าในตะกร้า
         await prisma.productOnCart.deleteMany({
             where: {
                 cart: {
@@ -87,20 +107,20 @@ exports.userCart = async (req, res) => {
             },
         });
 
-        // Prepare products for the cart
+        // เตรียมข้อมูลสินค้าใหม่ที่ต้องการใส่ในตะกร้า
         const products = cart.map((item) => ({
             productId: item.id,
             count: item.count,
             price: item.price,
         }));
 
-        // Calculate total price
+        // คำนวณราคารวม
         const cartTotal = products.reduce(
             (sum, item) => sum + item.price * item.count,
             0
         );
 
-        // Create new cart with products
+        // สร้างตะกร้าสินค้าใหม่
         const newCart = await prisma.cart.create({
             data: {
                 cartTotal: cartTotal,
@@ -119,6 +139,7 @@ exports.userCart = async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 };
+
 
 
 

@@ -58,11 +58,6 @@ exports.login = async (req, res) => {
             return res.status(400).json({ message: "Email not found" });
         }
 
-        // Check if the account is enabled
-        if (!user.enabled) {
-            return res.status(403).json({ message: "This account is disabled" });
-        }
-
         // Step 2: Check password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
@@ -83,20 +78,23 @@ exports.login = async (req, res) => {
         }
 
         const accessToken = jwt.sign(payload, process.env.SECRET, { expiresIn: '15m' });
-        //const refreshToken = jwt.sign(payload, process.env.REFRESH_SECRET, { expiresIn: '7d' });
 
-        // Save refreshToken to database
+        // Fix: Define refreshToken here
+        const refreshToken = jwt.sign(payload, process.env.REFRESH_SECRET, { expiresIn: '7d' });
+
+        // Save refreshToken to database (optional)
         await prisma.user.update({
             where: { id: user.id },
             data: { refreshToken: refreshToken }
         });
 
-        res.status(200).json({ accessToken, refreshToken });
+        res.json({ accessToken, refreshToken });
     } catch (err) {
-        console.error("Error in login:", err);
+        console.error(err);
         res.status(500).json({ message: "Server Error" });
     }
 };
+
 
 exports.currentUser = async (req, res) => {
     try {
