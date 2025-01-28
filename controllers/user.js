@@ -25,7 +25,12 @@ exports.changeStatus = async(req, res) => {
     try{
         const {id, enabled } = req.body
         console.log(id, enabled)
-        res.send("change status")
+        const user = await prisma.user.update({
+            where: { id:Number(id)},
+            data: { enabled:enabled}
+        })
+
+        res.send('Update Success')
 
 
     }
@@ -38,12 +43,10 @@ exports.changeRole = async(req, res) => {
     try{
         const { id, role} =req.body
         console.log(id, role)
-        res.send("change role")
         const user = await prisma.user.update({
             where : { id:Number(id) },
-            data : {enable: role }
+            data : {role: role }
             }
-
         )
         res.send("change role success")
 
@@ -57,6 +60,8 @@ exports.changeRole = async(req, res) => {
 exports.userCart = async (req, res) => {
     try {
         const { cart } = req.body; // Cart items from request body
+        console.log(cart)
+        console.log(req.user.id)
         const userId = req.user.id; // Logged-in user's ID
 
         // Find user
@@ -90,7 +95,7 @@ exports.userCart = async (req, res) => {
             price: item.price,
         }));
 
-        // Calculate total price
+        //หาผลรวม
         const cartTotal = products.reduce(
             (sum, item) => sum + item.price * item.count,
             0
@@ -119,12 +124,24 @@ exports.userCart = async (req, res) => {
 
 
 exports.getUserCart = async(req, res) => {
+    //req.user.id ต้องผ่าน middle ware
     try{
         const cart = await prisma.cart.findFirst({
             where:{
-                
+                orderedById: Number(req.user.id)    
+            },//หาcartของuser
+            include:{
+                product:{
+                    include:{
+                        product:true
+                    }
+
+                }
+
             }
         })
+        console.log(cart)
+        res.send(cart)
         
 
     }
