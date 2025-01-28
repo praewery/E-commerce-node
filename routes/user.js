@@ -9,8 +9,8 @@ router.post('/change-role',authCheck,adminCheck,changeRole)
 
 //user
 router.post('/user/cart',authCheck,userCart)
-router.get('/user/getcart',authCheck,getUserCart)
-router.delete('/user/emptycart',authCheck,emptyCart )
+router.get('/user/cart',authCheck,getUserCart)
+router.delete('/user/cart',authCheck,emptyCart )
 
 router.post('/user/address', saveAddress)
 

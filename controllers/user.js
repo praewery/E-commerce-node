@@ -141,7 +141,11 @@ exports.getUserCart = async(req, res) => {
             }
         })
         console.log(cart)
-        res.send(cart)
+        res.json({
+            product: cart.product,
+            cartTotal: cart.cartTotal
+        })
+
         
 
     }
@@ -154,8 +158,30 @@ exports.getUserCart = async(req, res) => {
 // clear cart
 exports.emptyCart = async(req, res) => {
     try{
-        res.send("emptyCart")
+        const cart = await prisma.cart.findFirst({
+            where: {orderedById: Number(req.user.id)}
+        })
+        if(!cart){
+            return res.status(400).json({massage:"nocart"})
+        }
 
+        //ลบของในcart
+        await prisma.productOnCart.deleteMany({
+            where:{ cartId:cart.id}
+        })
+
+        const result = await prisma.cart.deleteMany({
+            where : {
+                orderedById: Number(req.user.id)
+            },
+        })
+
+
+        console.log(result)
+        res.json({
+            massage : "cart Empty",
+            delete : result.count
+        })
     }
     catch(err){
         console.log(err)
@@ -164,7 +190,16 @@ exports.emptyCart = async(req, res) => {
 }
 exports.saveAddress = async(req, res) => {
     try{
-        res.send("saveAddress")
+        const {address} = req.body
+        const addresssUser =  await prisma.user.update({
+            where : {
+                id : Number(req.user.id)
+            },
+            data:{
+                address: address
+            }
+        })
+        res.json({ok:true,massage:'address update success'})
 
     }
     catch(err){
