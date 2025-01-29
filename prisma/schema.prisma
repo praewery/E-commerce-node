@@ -20,6 +20,7 @@ model User {
   name      String?
   picture   String?
   role      String   @default("user")
+  refreshToken String?  // Ensure this field exists
   enabled   Boolean  @default(true)
   address   String?
   orders    Order[]
@@ -51,8 +52,8 @@ model Order {
   orderstatus String           @default("Notprocess")
   createdAt   DateTime         @default(now())
   UpdateAt    DateTime         @updatedAt
-  Orderedby   User             @relation(fields: [OrderedbyId], references: [id], onDelete: Cascade)
-  OrderedbyId Int
+  orderedBy   User             @relation(fields: [orderedById], references: [id], onDelete: Cascade)
+  orderedById  Int
 }
 
 //1 สินค้ามีได้หลาย order
@@ -62,6 +63,8 @@ model ProductOnOrder {
   productId Int
   order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade) //เก็บ id product
   orderId   Int
+  count     Int
+  price     Int
 }
 
 model Category {
@@ -86,7 +89,7 @@ model ProductOnCart {
   id        Int     @id @default(autoincrement())
   cart      cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
   cartId    Int
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
   productId Int
   count     Int
   price     Float

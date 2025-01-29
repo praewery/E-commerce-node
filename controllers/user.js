@@ -208,7 +208,7 @@ exports.saveAddress = async (req, res) => {
       res.status(500).json({ message: "Server Error" });
     }
   };
-  exports.saveOrder = async (req, res) => {
+exports.saveOrder = async (req, res) => {
     try {
   
       // Step 1 Get User Cart
@@ -273,8 +273,11 @@ exports.saveAddress = async (req, res) => {
       console.log(update)
 
       await Promise.all(
-        update.map((updated)=>prisma)
+        update.map((updated)=>prisma.product.update(updated))
       )
+      await prisma.cart.deleteMany({
+        where: {orderedById : Number(req.user.id)}
+    })
           
     } catch (err) {
       console.log(err);
