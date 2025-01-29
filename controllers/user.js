@@ -188,42 +188,119 @@ exports.emptyCart = async(req, res) => {
         res.status(500).json({ message: "Server Error"})
     }
 }
-exports.saveAddress = async(req, res) => {
-    try{
-        const {address} = req.body
-        const addresssUser =  await prisma.user.update({
-            where : {
-                id : Number(req.user.id)
-            },
-            data:{
-                address: address
-            }
+exports.saveAddress = async (req, res) => {
+    try {
+      //code
+      const { address } = req.body;
+      console.log(address);
+      const addresssUser = await prisma.user.update({
+        where: {
+          id: Number(req.user.id),
+        },
+        data: {
+          address: address,
+        },
+      });
+  
+      res.json({ ok: true, message: "Address update success" });
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ message: "Server Error" });
+    }
+  };
+  exports.saveOrder = async (req, res) => {
+    try {
+  
+      // Step 1 Get User Cart
+      const userCart = await prisma.cart.findFirst({
+        where: {
+          orderedById: Number(req.user.id),
+        },
+        include: { product: true },
+      });
+  
+      // Check Cart empty
+      if (!userCart || userCart.product.length === 0) {
+        return res.status(400).json({ ok: false, message: "Cart is Empty" });
+      }
+  
+      //check quantity
+      for(const item of userCart.product){
+        console.log(item)
+        const product = await prisma.product.findUnique({
+            where : {id: item.productId},
+            select:{ quantity:true ,title:true} 
         })
-        res.json({ok:true,massage:'address update success'})
+        console.log(product)
+        if(!product || item.count > product.quantity){
+            return res.status(400).json({
+                ok:false,
+                massage: `สินค้า ${product?.title || 'product'}หมดดด`
+            })
+        }
+      }
+      //create new order
+      const order = await prisma.order.create({
+        data: {
+            products:{
+                create: userCart.product.map((item)=>({
+                    productId: item.productId,
+                    count: item.count,
+                    price : item.price
+                }))
+            },
+            orderedBy:{
+                connect:{ id:req.user.id}
+            },
+            cartTotal: userCart.cartTotal
+        }
+      })
 
-    }
-    catch(err){
-        console.log(err)
-        res.status(500).json({ message: "Server Error"})
-    }
-}
-exports.saveOrder = async(req, res) => {
-    try{
-        res.send("saveAddress")
+      //Update Product
+      const update = userCart.product.map((item)=>({
+        where:{
+            id: item.productId
+        },
+        data:{
+            quantity:{
+                decrement: item.count
+            },
+            sold:{
+                increment: item.count
+            }
+        }
+      }))
+      console.log(update)
 
+      await Promise.all(
+        update.map((updated)=>prisma)
+      )
+          
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ message: "Server Error" });
     }
-    catch(err){
-        console.log(err)
-        res.status(500).json({ message: "Server Error"})
+  };
+exports.getOrder = async (req, res) => {
+    try {
+      //code
+      const orders = await prisma.order.findMany({
+        where: { orderedById: Number(req.user.id) },
+        include: {
+          products: {
+            include: {
+              product: true,
+            },
+          },
+        },
+      });
+      if (orders.length === 0) {
+        return res.status(400).json({ ok: false, message: "No orders" });
+      }
+  
+      res.json({ ok: true, orders });
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ message: "Server Error" });
     }
-}
-exports.getOrder = async(req, res) => {
-    try{
-        res.send("saveAddress")
-
-    }
-    catch(err){
-        console.log(err)
-        res.status(500).json({ message: "Server Error"})
-    }
-}
+  };

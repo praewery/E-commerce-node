@@ -12,10 +12,10 @@ router.post('/user/cart',authCheck,userCart)
 router.get('/user/cart',authCheck,getUserCart)
 router.delete('/user/cart',authCheck,emptyCart )
 
-router.post('/user/address', saveAddress)
+router.post('/user/address',authCheck, saveAddress)
 
-router.post('/user/order', saveOrder)
-router.get('/user/order', getOrder)
+router.post('/user/order',authCheck, saveOrder)
+router.get('/user/order', authCheck,getOrder)
 
 
 module.exports = router;
