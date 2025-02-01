@@ -226,7 +226,6 @@ exports.saveOrder = async (req, res) => {
   
       //check quantity
       for(const item of userCart.product){
-        console.log(item)
         const product = await prisma.product.findUnique({
             where : {id: item.productId},
             select:{ quantity:true ,title:true} 
@@ -241,6 +240,7 @@ exports.saveOrder = async (req, res) => {
       }
       //create new order
       const order = await prisma.order.create({
+
         data: {
             products:{
                 create: userCart.product.map((item)=>({
@@ -252,33 +252,43 @@ exports.saveOrder = async (req, res) => {
             orderedBy:{
                 connect:{ id:req.user.id}
             },
-            cartTotal: userCart.cartTotal
+            cartTotal: userCart.cartTotal,
+            
         }
       })
 
       //Update Product
       const update = userCart.product.map((item)=>({
-        where:{
-            id: item.productId
-        },
+        where:{id: item.productId},
         data:{
-            quantity:{
-                decrement: item.count
-            },
-            sold:{
-                increment: item.count
-            }
+            quantity:{decrement: Number(item.count)},
+            sold:{increment: Number(item.count)}
         }
       }))
       console.log(update)
+      userCart.product.forEach((item) => {
+        console.log(`Product ID: ${item.productId}, Count: ${item.count}`);
+      });
+
+      console.log(JSON.stringify(update, null, 2));
+
+
 
       await Promise.all(
         update.map((updated)=>prisma.product.update(updated))
       )
+      console.log("Deleting cart...");
       await prisma.cart.deleteMany({
-        where: {orderedById : Number(req.user.id)}
-    })
-          
+        where: { orderedById: Number(req.user.id) }
+      });
+      console.log("Cart deleted.");
+
+      return res.status(200).json({
+        ok: true,
+        message: "Order saved successfully!",
+        order
+      });
+         
     } catch (err) {
       console.log(err);
       res.status(500).json({ message: "Server Error" });
